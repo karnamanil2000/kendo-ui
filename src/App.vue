@@ -1,7 +1,7 @@
 <template>
   <Grid
     ref="grid"
-    :style="{ height: '320px' }"
+    :style="{ height: '550px' }"
     :data-items="result"
     :edit-field="'inEdit'"
     :sortable="true"
@@ -31,6 +31,8 @@
 import { Grid, GridToolbar } from '@progress/kendo-vue-grid';
 import { Button } from '@progress/kendo-vue-buttons';
 import { process } from '@progress/kendo-data-query';
+// import { mapGetters } from 'vuex';
+import { GridService } from './services/GridService';
 
 export default {
   components: {
@@ -42,10 +44,12 @@ export default {
     return {
       updatedData: [],
       editID: null,
+      group: [ { field: 'UnitsInStock' } ],
+      expandedItems: [],
       sort: null,
       filter: null,
       skip: 0,
-      take: 3,
+      take: 10,
       columns: [
         { field: 'ProductID', title: 'ID', width: '150px' },
         { field: 'ProductName', title: 'Name' },
@@ -63,64 +67,65 @@ export default {
         },
         { field: 'Discontinued', title: 'Discontinued', filterable: 'true', editor: 'boolean' },
       ],
-      gridData: [
-        {
-          ProductID: 1,
-          ProductName: 'Chai',
-          UnitsInStock: 39,
-          Discontinued: false,
-          FirstOrderedOn: new Date(1996, 8, 20),
-        },
-        {
-          ProductID: 2,
-          ProductName: 'Chang',
-          UnitsInStock: 17,
-          Discontinued: false,
-          FirstOrderedOn: new Date(1996, 7, 12),
-        },
-        {
-          ProductID: 3,
-          ProductName: 'Aniseed Syrup',
-          UnitsInStock: 13,
-          Discontinued: false,
-          FirstOrderedOn: new Date(1996, 8, 26),
-        },
-        {
-          ProductID: 4,
-          ProductName: "Cajun Seasoning",
-          UnitsInStock: 53,
-          Discontinued: false,
-          FirstOrderedOn: new Date(1996, 9, 19),
-        },
-        {
-          ProductID: 5,
-          ProductName: 'Orange',
-          UnitsInStock: 51,
-          Discontinued: false,
-          FirstOrderedOn: new Date(1996, 9, 19),
-        },
-        {
-          ProductID: 6,
-          ProductName: 'Banana',
-          UnitsInStock: 22,
-          Discontinued: false,
-          FirstOrderedOn: new Date(1996, 9, 19),
-        },
-        {
-          ProductID: 7,
-          ProductName: 'Apple',
-          UnitsInStock: 16,
-          Discontinued: false,
-          FirstOrderedOn: new Date(1996, 9, 19),
-        },
-        {
-          ProductID: 8,
-          ProductName: 'Peach',
-          UnitsInStock: 10,
-          Discontinued: false,
-          FirstOrderedOn: new Date(1996, 9, 19),
-        },
-      ],
+      gridData: []
+      // gridData: [
+      //   {
+      //     ProductID: 1,
+      //     ProductName: 'Chai',
+      //     UnitsInStock: 39,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 8, 20),
+      //   },
+      //   {
+      //     ProductID: 2,
+      //     ProductName: 'Chang',
+      //     UnitsInStock: 17,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 7, 12),
+      //   },
+      //   {
+      //     ProductID: 3,
+      //     ProductName: 'Aniseed Syrup',
+      //     UnitsInStock: 13,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 8, 26),
+      //   },
+      //   {
+      //     ProductID: 4,
+      //     ProductName: "Cajun Seasoning",
+      //     UnitsInStock: 53,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 9, 19),
+      //   },
+      //   {
+      //     ProductID: 5,
+      //     ProductName: 'Orange',
+      //     UnitsInStock: 51,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 9, 19),
+      //   },
+      //   {
+      //     ProductID: 6,
+      //     ProductName: 'Banana',
+      //     UnitsInStock: 22,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 9, 19),
+      //   },
+      //   {
+      //     ProductID: 7,
+      //     ProductName: 'Apple',
+      //     UnitsInStock: 16,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 9, 19),
+      //   },
+      //   {
+      //     ProductID: 8,
+      //     ProductName: 'Peach',
+      //     UnitsInStock: 10,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 9, 19),
+      //   },
+      // ],
     };
   },
   computed: {
@@ -139,6 +144,9 @@ export default {
         });
       },
     },
+    // ...mapGetters({
+    //   gridData: "getProductsState"
+    // })
   },
   methods: {
     itemChange: function (e) {
@@ -146,8 +154,8 @@ export default {
       const index = data.findIndex((d) => d.ProductID === e.dataItem.ProductID);
       data[index] = { ...data[index], [e.field]: e.value };
       this.gridData = data;
-      if (event.dataItem) {
-        event.dataItem[e.field] = e.value;
+      if (e.dataItem) {
+        e.dataItem[e.field] = e.value;
       }
     },
     rowClick: function (e) {
@@ -178,5 +186,15 @@ export default {
       this.skip = event.page.skip;
     },
   },
+  async created () {
+    // this.$store.dispatch("productsModule/getProducts")
+    try {
+      let response = await GridService.getAllProducts();
+      this.gridData = response.data;
+      console.log(this.gridData,"gridData")
+    } catch (error) {
+      console.log(error)
+    }
+  }
 };
 </script>
