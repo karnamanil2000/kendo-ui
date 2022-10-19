@@ -1,151 +1,203 @@
 <template>
   <v-container>
-    <v-row class="text-center">
-      <v-col cols="12">
-        <v-img
-          :src="require('../assets/logo.svg')"
-          class="my-3"
-          contain
-          height="200"
-        />
-      </v-col>
-
-      <v-col class="mb-4">
-        <h1 class="display-2 font-weight-bold mb-3">
-          Welcome to Vuetify
-        </h1>
-
-        <p class="subheading font-weight-regular">
-          For help and collaboration with other Vuetify developers,
-          <br>please join our online
-          <a
-            href="https://community.vuetifyjs.com"
-            target="_blank"
-          >Discord Community</a>
-        </p>
-      </v-col>
-
-      <v-col
-        class="mb-5"
-        cols="12"
-      >
-        <h2 class="headline font-weight-bold mb-3">
-          What's next?
-        </h2>
-
-        <v-row justify="center">
-          <a
-            v-for="(next, i) in whatsNext"
-            :key="i"
-            :href="next.href"
-            class="subheading mx-3"
-            target="_blank"
-          >
-            {{ next.text }}
-          </a>
-        </v-row>
-      </v-col>
-
-      <v-col
-        class="mb-5"
-        cols="12"
-      >
-        <h2 class="headline font-weight-bold mb-3">
-          Important Links
-        </h2>
-
-        <v-row justify="center">
-          <a
-            v-for="(link, i) in importantLinks"
-            :key="i"
-            :href="link.href"
-            class="subheading mx-3"
-            target="_blank"
-          >
-            {{ link.text }}
-          </a>
-        </v-row>
-      </v-col>
-
-      <v-col
-        class="mb-5"
-        cols="12"
-      >
-        <h2 class="headline font-weight-bold mb-3">
-          Ecosystem
-        </h2>
-
-        <v-row justify="center">
-          <a
-            v-for="(eco, i) in ecosystem"
-            :key="i"
-            :href="eco.href"
-            class="subheading mx-3"
-            target="_blank"
-          >
-            {{ eco.text }}
-          </a>
-        </v-row>
-      </v-col>
-    </v-row>
+    <Grid
+      ref="grid"
+      :style="{ height: '550px' }"
+      :data-items="result"
+      :edit-field="'inEdit'"
+      :sortable="true"
+      :sort="sort"
+      :filterable="true"
+      :filter="filter"
+      :pageable="true"
+      :skip="skip"
+      :take="take"
+      @rowclick="rowClick"
+      @sortchange="sortChangeHandler"
+      @filterchange="filterChangeHandler"
+      @pagechange="pageChangeHandler"
+      @itemchange="itemChange"
+      :columns="columns"
+    >
+      <grid-toolbar>
+        <div @click="closeEdit">
+          <kbutton title="Add new" :theme-color="'primary'" @click="addRecord">
+            Add new
+          </kbutton>
+        </div>
+      </grid-toolbar>
+    </Grid>
   </v-container>
 </template>
 
 <script>
-  export default {
-    name: 'HelloWorld',
+import { Grid, GridToolbar } from '@progress/kendo-vue-grid';
+import { Button } from '@progress/kendo-vue-buttons';
+import { process } from '@progress/kendo-data-query';
+// import { mapGetters } from 'vuex';
+import { GridService } from '../services/GridService';
 
-    data: () => ({
-      ecosystem: [
+export default {
+  components: {
+    'Grid': Grid,
+    'grid-toolbar': GridToolbar,
+    'kbutton': Button,
+  },
+  data: function () {
+    return {
+      updatedData: [],
+      editID: null,
+      group: [ { field: 'UnitsInStock' } ],
+      expandedItems: [],
+      sort: null,
+      filter: null,
+      skip: 0,
+      take: 10,
+      columns: [
+        { field: 'ProductID', title: 'ID', width: '150px' },
+        { field: 'ProductName', title: 'Name' },
         {
-          text: 'vuetify-loader',
-          href: 'https://github.com/vuetifyjs/vuetify-loader',
+          field: 'FirstOrderedOn',
+          editor: 'date',
+          title: 'First Ordered',
+          format: '{0:d}',
         },
         {
-          text: 'github',
-          href: 'https://github.com/vuetifyjs/vuetify',
+          field: 'UnitsInStock',
+          title: 'Units',
+          width: '150px',
+          editor: 'numeric',
         },
-        {
-          text: 'awesome-vuetify',
-          href: 'https://github.com/vuetifyjs/awesome-vuetify',
-        },
+        { field: 'Discontinued', title: 'Discontinued', filterable: 'true', editor: 'boolean' },
       ],
-      importantLinks: [
-        {
-          text: 'Documentation',
-          href: 'https://vuetifyjs.com',
-        },
-        {
-          text: 'Chat',
-          href: 'https://community.vuetifyjs.com',
-        },
-        {
-          text: 'Made with Vuetify',
-          href: 'https://madewithvuejs.com/vuetify',
-        },
-        {
-          text: 'Twitter',
-          href: 'https://twitter.com/vuetifyjs',
-        },
-        {
-          text: 'Articles',
-          href: 'https://medium.com/vuetify',
-        },
-      ],
-      whatsNext: [
-        {
-          text: 'Explore components',
-          href: 'https://vuetifyjs.com/components/api-explorer',
-        },
-        {
-          text: 'Select a layout',
-          href: 'https://vuetifyjs.com/getting-started/pre-made-layouts',
-        },
-        {
-          text: 'Frequently Asked Questions',
-          href: 'https://vuetifyjs.com/getting-started/frequently-asked-questions',
-        },
-      ],
-    }),
+      gridData: []
+      // gridData: [
+      //   {
+      //     ProductID: 1,
+      //     ProductName: 'Chai',
+      //     UnitsInStock: 39,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 8, 20),
+      //   },
+      //   {
+      //     ProductID: 2,
+      //     ProductName: 'Chang',
+      //     UnitsInStock: 17,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 7, 12),
+      //   },
+      //   {
+      //     ProductID: 3,
+      //     ProductName: 'Aniseed Syrup',
+      //     UnitsInStock: 13,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 8, 26),
+      //   },
+      //   {
+      //     ProductID: 4,
+      //     ProductName: "Cajun Seasoning",
+      //     UnitsInStock: 53,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 9, 19),
+      //   },
+      //   {
+      //     ProductID: 5,
+      //     ProductName: 'Orange',
+      //     UnitsInStock: 51,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 9, 19),
+      //   },
+      //   {
+      //     ProductID: 6,
+      //     ProductName: 'Banana',
+      //     UnitsInStock: 22,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 9, 19),
+      //   },
+      //   {
+      //     ProductID: 7,
+      //     ProductName: 'Apple',
+      //     UnitsInStock: 16,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 9, 19),
+      //   },
+      //   {
+      //     ProductID: 8,
+      //     ProductName: 'Peach',
+      //     UnitsInStock: 10,
+      //     Discontinued: false,
+      //     FirstOrderedOn: new Date(1996, 9, 19),
+      //   },
+      // ],
+    };
+  },
+  computed: {
+    getData() {
+      return this.gridData.map((item) =>
+        Object.assign({ inEdit: item.ProductID === this.editID }, item)
+      );
+    },
+    result: {
+      get: function () {
+        return process(this.gridData, {
+          sort: this.sort,
+          filter: this.filter,
+          take: this.take,
+          skip: this.skip,
+        });
+      },
+    },
+    // ...mapGetters({
+    //   gridData: "getProductsState"
+    // })
+  },
+  methods: {
+    itemChange: function (e) {
+      const data = this.gridData.slice();
+      const index = data.findIndex((d) => d.ProductID === e.dataItem.ProductID);
+      data[index] = { ...data[index], [e.field]: e.value };
+      this.gridData = data;
+      if (e.dataItem) {
+        e.dataItem[e.field] = e.value;
+      }
+    },
+    rowClick: function (e) {
+      this.gridData.map((item) => (item.inEdit = false));
+      this.editID = e.dataItem.ProductID;
+      e.dataItem.inEdit = true;
+    },
+    closeEdit(e) {
+      if (e.target === e.currentTarget) {
+        this.editID = null;
+      }
+    },
+    addRecord() {
+      const newRecord = { ProductID: this.gridData.length + 1 };
+      const data = this.gridData.slice();
+      data.unshift(newRecord);
+      this.gridData = data;
+      this.editID = newRecord.ProductID;
+    },
+    sortChangeHandler(event) {
+      this.sort = event.sort;
+    },
+    filterChangeHandler(event) {
+      this.filter = event.filter;
+    },
+    pageChangeHandler(event) {
+      this.take = event.page.take;
+      this.skip = event.page.skip;
+    },
+  },
+  async created () {
+    // this.$store.dispatch("productsModule/getProducts")
+    try {
+      let response = await GridService.getAllProducts();
+      this.gridData = response.data;
+      console.log(this.gridData,"gridData")
+    } catch (error) {
+      console.log(error)
+    }
   }
+};
 </script>
